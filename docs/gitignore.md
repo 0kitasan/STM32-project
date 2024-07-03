@@ -1,6 +1,6 @@
 # gitignore
 
-这个gitignore文件很容易导致错误，比如会把他自己也忽略掉
+这个 gitignore 文件很容易导致错误，比如会把他自己也忽略掉
 
 ```gitignore
 # Ignore everything
