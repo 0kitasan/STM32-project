@@ -64,7 +64,7 @@ void set_segment_code (uint8_t code)
 	HAL_GPIO_WritePin(SEG5_GPIO_Port, SEG5_Pin, code&1<<5 ? GPIO_PIN_SET:GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(SEG6_GPIO_Port, SEG6_Pin, code&1<<6 ? GPIO_PIN_SET:GPIO_PIN_RESET);
 }
-int scan_keyboard()
+int scan_keyboard(void)
 {
 	//SCAN ROW0
 	HAL_GPIO_WritePin(SEG0_GPIO_Port, SEG0_Pin, GPIO_PIN_SET);
@@ -94,12 +94,14 @@ int scan_keyboard()
 	if (HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin) == GPIO_PIN_RESET) return 14;
 	return -1;
 }
+
+uint8_t codes[]={0x3f,0x06,0x5b,0x4f,0x66,0x6d,0x7d,0x07,0x7f,0x6f};
+// 显示0-9
 void set_segment_number (uint8_t number)
 {
-	uint8_t codes[]={0x3f,0x06,0x5b,0x4f,0x66,0x6d,0x7d,0x07,0x7f,0x6f};
 	set_segment_code(codes[number]);
 }
-void reset_segment()
+void reset_segment(void)
 {
 	HAL_GPIO_WritePin(SEG0_GPIO_Port, SEG0_Pin,GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(SEG1_GPIO_Port, SEG1_Pin,GPIO_PIN_RESET);
@@ -109,10 +111,10 @@ void reset_segment()
 	HAL_GPIO_WritePin(SEG5_GPIO_Port, SEG5_Pin,GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(SEG6_GPIO_Port, SEG6_Pin,GPIO_PIN_RESET);
 }
-int operate(int a,int b, int pin)
+int operate(int a,int b, int operator)
 {
 	int ans;
-	switch(pin)
+	switch(operator)
 	{
 		case 0:
 			ans=a+b;
@@ -126,9 +128,55 @@ int operate(int a,int b, int pin)
 		case 3:
 			ans=a/b;
 			break;
+		default:
+			ans=a;
 	}
 	if (ans<0 || ans >=10000) return 0;
 	return ans;
+}
+
+void print_num(int display,uint8_t delayTime, uint8_t shouldDelay){
+	set_segment_number(display%10);
+	HAL_GPIO_WritePin(DIG0_GPIO_Port, DIG0_Pin, GPIO_PIN_SET);
+	if(shouldDelay) HAL_Delay(delayTime);
+	HAL_GPIO_WritePin(DIG0_GPIO_Port, DIG0_Pin, GPIO_PIN_RESET);
+	set_segment_number((display/10)%10);
+	HAL_GPIO_WritePin(DIG1_GPIO_Port, DIG1_Pin, GPIO_PIN_SET);
+	if(shouldDelay) HAL_Delay(delayTime);
+	HAL_GPIO_WritePin(DIG1_GPIO_Port, DIG1_Pin, GPIO_PIN_RESET);
+	set_segment_number((display/100)%10);
+	HAL_GPIO_WritePin(DIG2_GPIO_Port, DIG2_Pin, GPIO_PIN_SET);
+	if(shouldDelay) HAL_Delay(delayTime);
+	HAL_GPIO_WritePin(DIG2_GPIO_Port, DIG2_Pin, GPIO_PIN_RESET);
+	set_segment_number((display/1000)%10);
+	HAL_GPIO_WritePin(DIG3_GPIO_Port, DIG3_Pin, GPIO_PIN_SET);
+	if(shouldDelay) HAL_Delay(delayTime);
+	HAL_GPIO_WritePin(DIG3_GPIO_Port, DIG3_Pin, GPIO_PIN_RESET);
+	reset_segment();
+}
+
+void print_digit(int position, int value) {
+    reset_segment();
+    // 根据位置重置其他数码管
+    HAL_GPIO_WritePin(DIG0_GPIO_Port, DIG0_Pin, (position == 0) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(DIG1_GPIO_Port, DIG1_Pin, (position == 1) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(DIG2_GPIO_Port, DIG2_Pin, (position == 2) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(DIG3_GPIO_Port, DIG3_Pin, (position == 3) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    // 设置要显示的数字
+    set_segment_number(value);
+}
+
+int digit[4]={0};
+void get_digit(int value) {
+    // 确保 value 是一个四位数
+    if (value < 0 || value > 9999) {
+        return;
+    }
+    // 从低位到高位提取每一位数字
+    for (int i = 0; i < 4; i++) {
+        digit[i] = value % 10;  // 提取最低位数字
+        value /= 10;            // 除以 10，去掉最低位
+    }
 }
 /* USER CODE END 0 */
 
@@ -147,7 +195,7 @@ int main(void)
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
-
+  // HAL_SYSTICK_Config(SystemCoreClock / 1000); // 配置 SysTick 产生 1 毫秒中断
   /* USER CODE BEGIN Init */
 
   /* USER CODE END Init */
@@ -156,7 +204,9 @@ int main(void)
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-
+  uint32_t desired_frequency = 1000; // 1 kHz
+  uint32_t reload_value = SystemCoreClock / desired_frequency - 1;
+  HAL_SYSTICK_Config(reload_value);
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -166,8 +216,9 @@ int main(void)
   int operator =0;
   int display=0;
   int i;
+  int shouldDelay=1;
+  int delayTime=200;
   /* USER CODE END 2 */
-
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -175,43 +226,36 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  	i=scan_keyboard();
+	i=-1;
+	if(flag>=5){i=scan_keyboard();}
+
   	if (i>=0 && i<10)
   	{
-  		HAL_Delay(200);
+  		// 键盘输入数字
+  		if(shouldDelay) HAL_Delay(delayTime);
   		display=display*10+i;
   		if (display >=10000) display=0;
   	}
-  	if (i>=10 && i<14)
+  	else if (i>=10 && i<14)
   	{
-  		HAL_Delay(200);
-  		answer=operate(answer,display,operator);
-  		display=0;
+  		// 键盘输入运算符
+  		if(shouldDelay) HAL_Delay(delayTime);
+  		// answer=operate(answer,display,operator);
+  		answer=display;
+  		display=0;// 输入运算符时，屏幕上不应有显示
   		operator=i-10;
   	}
-  	if (i==14)
+  	else if (i==14)
   	{
-  		HAL_Delay(200);
+  		// 键盘输入等于号
+  		if(shouldDelay) HAL_Delay(delayTime);
   		answer=operate(answer,display,operator);
   		display=answer;
+  		// 清空operator，防止出现空按=时，answer被自己改变
+  		operator=-1;
   	}
-		set_segment_number(display%10);
-  	HAL_GPIO_WritePin(DIG0_GPIO_Port, DIG0_Pin, GPIO_PIN_SET);
-  	HAL_Delay(2);
-  	HAL_GPIO_WritePin(DIG0_GPIO_Port, DIG0_Pin, GPIO_PIN_RESET);
-		set_segment_number((display/10)%10);
-  	HAL_GPIO_WritePin(DIG1_GPIO_Port, DIG1_Pin, GPIO_PIN_SET);
-  	HAL_Delay(2);
-  	HAL_GPIO_WritePin(DIG1_GPIO_Port, DIG1_Pin, GPIO_PIN_RESET);
-  	set_segment_number((display/100)%10);
-  	HAL_GPIO_WritePin(DIG2_GPIO_Port, DIG2_Pin, GPIO_PIN_SET);
-  	HAL_Delay(2);
-  	HAL_GPIO_WritePin(DIG2_GPIO_Port, DIG2_Pin, GPIO_PIN_RESET);
-  	set_segment_number((display/1000)%10);
-  	HAL_GPIO_WritePin(DIG3_GPIO_Port, DIG3_Pin, GPIO_PIN_SET);
-  	HAL_Delay(2);
-  	HAL_GPIO_WritePin(DIG3_GPIO_Port, DIG3_Pin, GPIO_PIN_RESET);
-  	reset_segment();
+  	get_digit(display);
+  	//HAL_Delay(2);
   }
   /* USER CODE END 3 */
 }

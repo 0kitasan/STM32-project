@@ -57,7 +57,9 @@
 /* External variables --------------------------------------------------------*/
 
 /* USER CODE BEGIN EV */
-
+int flag=0;
+int button_cnt=0;
+int scan_res=-1;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -187,6 +189,18 @@ void SysTick_Handler(void)
   /* USER CODE END SysTick_IRQn 0 */
   HAL_IncTick();
   /* USER CODE BEGIN SysTick_IRQn 1 */
+  if(flag<=3){
+	  print_digit(flag,digit[flag]);
+	  flag++;
+  }else if(flag==4){
+	  reset_segment();
+	  HAL_GPIO_WritePin(DIG3_GPIO_Port, DIG3_Pin,GPIO_PIN_RESET);
+	  flag++;
+  }else if(flag<15){
+	  flag++;
+  }else{
+	  flag=0;
+  }
 
   /* USER CODE END SysTick_IRQn 1 */
 }

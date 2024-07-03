@@ -97,7 +97,12 @@ void Error_Handler(void);
 #define DIG3_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
-
+extern int flag;
+extern int button_cnt;
+extern int scan_res;
+void print_digit(int,int);
+void reset_segment(void);
+extern int digit[4];
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
