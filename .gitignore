@@ -1,0 +1,36 @@
+# CubeIDE生成的文件
+.cproject
+.project
+.settings/
+.loadpath
+.autosave/
+.mxproject
+
+# 编译输出
+Debug/
+Release/
+build/
+Drivers/
+Startup/
+
+# 操作系统生成的文件
+.DS_Store
+Thumbs.db
+
+# 日志文件和临时文件
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+*.bak
+*.orig
+
+# 其他
+*.elf
+*.map
+*.bin
+*.hex
+*.launch
+*.ld
+
