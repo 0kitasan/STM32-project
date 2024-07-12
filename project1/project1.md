@@ -49,6 +49,8 @@ void print_dotmat(uint16_t **dotmat, uint8_t nums, uint8_t size, int delay);
 - `size`：每个点阵图案的大小。
 - `delay`：显示每个图案的延时。
 
+![显示汉字](https://github.com/user-attachments/assets/3cb7eede-1c5f-46fb-8fbc-060a95ecf09a)
+
 ---
 
 ## 显示数字
@@ -105,6 +107,8 @@ void print_num(uint16_t num, int delay) {
     hc595_send(0x0000); // 清除显示
 }
 ```
+
+![显示字母与数字](https://github.com/user-attachments/assets/ad60d475-a4ed-4846-baf4-2a5de1daa47f)
 
 ---
 
@@ -276,29 +280,26 @@ int main(void)
 
 ```mermaid
 graph TD
-    A[Main Function] -->|初始化| B[HAL_Init]
-    B --> C[SystemClock_Config]
-    C --> D[MX_GPIO_Init]
-    D --> E[MX_TIM16_Init]
-    E --> F[init_overflow_1s]
-    F --> G[HAL_TIM_IC_Start_IT]
-    G --> H[__HAL_TIM_ENABLE_IT]
+    A[Main Function] -->|初始化| B[系统初始化]
+    B --> C[init_overflow_1s]
+    C --> D[HAL_TIM_IC_Start_IT]
+    D --> E[__HAL_TIM_ENABLE_IT]
 
-    H --> I[主循环]
-    I -->|轮询| J{判断条件}
-    J -->|rotate_begin==1| K[更新时钟轮询]
-    J -->|round_finish_flag==1| L[打印时钟/数字/点阵]
+    E --> F[主循环]
+    F -->|轮询| G{判断条件}
+    G -->|rotate_begin==1| H[更新时钟轮询]
+    G -->|round_finish_flag==1| I[打印时钟/数字/点阵]
 
-    K -->|renew_clock_flag==1| M[renew_clock]
-    M --> N[更新时钟数组]
+    H -->|renew_clock_flag==1| J[renew_clock]
+    J --> K[更新时钟数组]
 
-    L --> O[print_clock/print_num/print_dotmat]
+    I --> L[print_clock/print_num/print_dotmat]
 
-    J -->|捕获回调| P[HAL_TIM_IC_CaptureCallback]
-    P --> Q[捕获输入信号]
-    Q --> R[计算旋转周期]
+    G -->|捕获回调| M[HAL_TIM_IC_CaptureCallback]
+    M --> N[捕获输入信号]
+    N --> O[计算旋转周期]
 
-    J -->|溢出回调| S[HAL_TIM_PeriodElapsedCallback]
-    S --> T[更新计时]
-    T --> U[更新时钟显示]
+    G -->|溢出回调| P[HAL_TIM_PeriodElapsedCallback]
+    P --> Q[更新计时]
+    Q --> R[更新时钟显示]
 ```
