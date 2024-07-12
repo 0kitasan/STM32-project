@@ -11,6 +11,8 @@ paginate: true
 
 ### 函数：`hc595_send`
 
+![image](https://github.com/user-attachments/assets/7ed76c4e-07b2-4e26-9f94-61f7bec02e8f)
+
 此函数将 16 位数据发送到 74HC595 移位寄存器。
 
 ```c
