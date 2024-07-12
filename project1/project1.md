@@ -36,6 +36,8 @@ void hc595_send(uint16_t data)
 
 点阵数据定义在 `dotfont_lib.h` 中。
 
+![IMG_20240712_133514](https://github.com/user-attachments/assets/3cab1292-441f-4316-aca4-95f6fe982808)
+
 ### 函数：`print_dotmat`
 
 ```c
@@ -166,6 +168,10 @@ void print_clock(int delay) {
 }
 ```
 
+## 引脚与时钟配置
+
+![image](https://github.com/user-attachments/assets/0c71bcee-b7e0-483a-9045-827aaf3a2dd9)
+
 ---
 
 ## 周期等参数的测量：定时器输入捕获
@@ -236,12 +242,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
             {
                 ic_val2 = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
                 difference = ic_val2 - ic_val1 + overflow_cnt * (htim16.Init.Period + 1);
-                time_interval = difference / (freq * 1000);
-                captured_once = 0; // 重置捕获状态
-            }
-        }
-    }
-}
+                time_interval = difference / (freq * 1000);##
 ```
 
 ---
@@ -280,26 +281,25 @@ int main(void)
 
 ```mermaid
 graph TD
-    A[Main Function] -->|初始化| B[系统初始化]
-    B --> C[init_overflow_1s]
-    C --> D[HAL_TIM_IC_Start_IT]
-    D --> E[__HAL_TIM_ENABLE_IT]
+    A[系统初始化] --> B[init_overflow_1s]
+    B --> C[HAL_TIM_IC_Start_IT]
+    C --> D[__HAL_TIM_ENABLE_IT]
 
-    E --> F[主循环]
-    F -->|轮询| G{判断条件}
-    G -->|rotate_begin==1| H[更新时钟轮询]
-    G -->|round_finish_flag==1| I[打印时钟/数字/点阵]
+    D --> E[主循环]
+    E -->|轮询| F{判断条件}
+    F -->|round_finish_flag==1| G[打印时钟/数字/点阵]
 
-    H -->|renew_clock_flag==1| J[renew_clock]
-    J --> K[更新时钟数组]
+    G --> H[print_clock/print_num/print_dotmat]
 
-    I --> L[print_clock/print_num/print_dotmat]
+    F -->|捕获回调| I[HAL_TIM_IC_CaptureCallback]
+    I --> J[捕获输入信号]
+    J --> K[计算旋转周期<br>更新round_finish_flag]
 
-    G -->|捕获回调| M[HAL_TIM_IC_CaptureCallback]
-    M --> N[捕获输入信号]
-    N --> O[计算旋转周期]
+    F -->|溢出回调| L[HAL_TIM_PeriodElapsedCallback]
+    L --> M[更新计时]
+    M --> N[更新renew_clock_flag]
 
-    G -->|溢出回调| P[HAL_TIM_PeriodElapsedCallback]
-    P --> Q[更新计时]
-    Q --> R[更新时钟显示]
+    F -->|时钟轮询| O{renew_clock_flag==1}
+    O --> P[renew_clock]
+    P --> Q[更新时钟数组]
 ```
