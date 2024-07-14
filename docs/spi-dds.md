@@ -31,7 +31,7 @@ SPI 通信涉及四根主要信号线：
 1. **MOSI（Master Out Slave In）** ：主设备输出数据，供从设备接收。
 2. **MISO（Master In Slave Out）** ：从设备输出数据，供主设备接收。
 3. **SCK（Serial Clock）** ：串行时钟信号，由主设备生成，控制数据传输速率。
-4. **SS（Slave Select）或 CS（Chip Select）** ：从设备选择信号，低电平有效，由主设备控制，用于选择具体的从设备进行通信（即片选，或从片选)。
+4. **SS（Slave Select）或 CS（Chip Select）** ：从设备选择信号，低电平有效，由主设备控制，用于选择具体的从设备进行通信（即片选，或从片选）。
 
 ### 工作模式
 
