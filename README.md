@@ -1,6 +1,6 @@
 # STM32-project
 
-STM32 project with CubeIDE
+STM32 project
 
 备忘录。
 
