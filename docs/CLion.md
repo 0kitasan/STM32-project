@@ -8,11 +8,17 @@
 
 ## 环境搭建
 
-### 安装 CLion 和 CubeMX
+### 安装 CLion
 
-CLion(https://www.jetbrains.com/clion/download)
+官网下载：[CLion](https://www.jetbrains.com/clion/download)
 
-CubeMX(https://www.st.com/en/development-tools/stm32cubemx.html)
+至于如何安装，请到参考条目下面点击链接
+
+### 安装 CubeMX
+
+官网下载：[CubeMX](https://www.st.com/en/development-tools/stm32cubemx.html)
+
+需要注册账号；需要生成代码的话，还要下载各种 stm32 的包
 
 ### 安装 arm 编译器：arm-none-eabi
 
@@ -41,4 +47,13 @@ sudo apt install openocd
 
 ## 配置 CubeMX
 
+通过在 CLion 中选择`.ioc`文件，并跳转到 CubeMX 后，会自动选择默认芯片。点击芯片型号即可修改芯片，但是要注意，修改过后不能直接按`ctrl+s`保存，而是要到`project`中修改名称，名称一定要和 CLion 中创建的项目名称相同。
+
 ## 配置 OpenOCD（.cfg 文件）
+
+## 参考
+
+[ubuntu 使用 clion 搭建 stm32 开环境使用 stlink 下载调试](https://blog.csdn.net/weixin_41115751/article/details/121439534)
+[ubuntu20.04 安装 CLion](https://blog.csdn.net/xiaowenshen/article/details/118761466)
+[配置 CLion 用于 STM32 开发-稚晖君](https://zhuanlan.zhihu.com/p/145801160)
+[STM32CubeMX projects-jetbrains 官方文档](https://www.jetbrains.com/help/clion/embedded-development.html)
