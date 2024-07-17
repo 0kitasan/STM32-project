@@ -1,7 +1,6 @@
-# adc
+# ADC
 
 ## 1adc-1ch
-
 
 ## 1adc-2ch
 
@@ -14,9 +13,7 @@ discontinuous mode
 
 如果
 
-
 ## 2adc-2ch
-
 
 如果要对两个信号进行严格的同时采样，必然要用到两个adc
 
