@@ -21,3 +21,5 @@ discontinuous mode
 - 问题：运行 ADC 的 START 程序会消耗时间，调用两个 ADC 启动程序会导致采样时间差。
 - 解决方案：配置 ADC 为 Dual 模式。在此模式下，从 ADC 会跟随主 ADC，主 ADC 开始转换时，从 ADC 同时开始转换。
 - 注意事项：一定要先初始化从 ADC 再初始化主 ADC，否则主 ADC 开始转换时，从 ADC 可能还没配置好。
+
+## AFE 模拟前端
