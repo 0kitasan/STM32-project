@@ -5,7 +5,7 @@ theme: default
 paginate: true
 style: |
   h2 {
-    color: #1E90FF; /* 修改为你想要的颜色 */
+    color: #00008B; /* 二级标题深蓝色 */
   }
 ---
 
@@ -83,7 +83,19 @@ style: |
 
 ---
 
+## USB 测试仪（续）
+
+[正点原子 ut70](https://item.szlcsc.com/item/20426307.html)
+
+![ut70](./img/ut70.png)
+
+---
+
 ## QC 诱骗
+
+### 实例
+
+[嘉立创-{qc 诱骗项目}](https://oshwhub.com/azhannihao/qc-you-pian-mu-kuai-dan-pian-ji-ban)
 
 ### 概念
 
@@ -92,7 +104,7 @@ style: |
 ### 应用
 
 - **支持旧设备快充**：可以给不支持快充的老旧设备提供快充功能。
-- **轻量级适配器**：可以改用轻量级的电源适配器和新型的 Type-C 接口，而不是老旧的 12VDC 接口和砖头大小的适配器。
+- **轻量级适配器**：可以改用轻量级的电源适配器和新型的 Type-C 接口，而不是老旧的 12V-DC 接口和砖头大小的适配器。
 
 ---
 
