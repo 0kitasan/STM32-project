@@ -2,7 +2,6 @@
 
 嵌入式任务：代码移植
 
-
 ## THD.v2 源码
 
 ### 函数与全局变量定义
@@ -10,6 +9,9 @@
 ```cpp
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+#define samples 1024
+#define FFT_LENGTH 1024
+
 uint16_t adc_buffer[samples];
 uint8_t adc_buffer1[2 * samples];
 uint16_t dac_buffer[100];
@@ -84,9 +86,10 @@ float calculateTHD(float fft_outputbuf[]) {
 
 ### main函数逻辑
 
+v2版本只是调试程序，DAC 尚未配置
+
 ```cpp
 int main(void) {
-
 	/* ...INIT... */
 
 	/* USER CODE BEGIN 2 */
@@ -125,6 +128,7 @@ int main(void) {
 			{
 		fft_int[i]=(uint16_t) fft_outputbuf[i];
 	}
+
 	split_uint16_to_uint8(fft_int, samples, adc_buffer1);
 	float thd = calculateTHD(fft_outputbuf);
 	/* USER CODE END 2 */
@@ -144,23 +148,63 @@ int main(void) {
 
 ## 迁移工作
 
+需要回去查看 CubeMX ,此外,可以测试一下 TIM1638 的底层驱动移植.
 
 ### 外设、引脚配置
 
 #### ADC-DMA
 
+ADC 测量部分
+
+```cpp
+	int i1 = 3;
+	while (i1--) {
+		HAL_TIM_Base_Start(&htim6);
+		HAL_ADC_Start_DMA(&hadc1, (uint32_t*) adc_buffer, samples);
+		split_uint16_to_uint8(adc_buffer, samples, adc_buffer1);
+		adc_ongoing = 1;
+		while (adc_ongoing)
+			;
+		HAL_Delay(1000);
+	}
+```
+
 #### TIM
+
 
 #### UART，可以不用，但方便调试
 
-#### DAC(x2)，暂时不用
+#### DAC(v2 暂时不用)
 
 
 
 ### CMSIS-DSP:FFT
 
+经简单测试, 在 MSPM0 上直接使用 float 的 fft 似乎是 ok 的.
+
+```cpp
+	float fft_inputbuf[FFT_LENGTH * 2];	//FFT输入数组
+	float fft_outputbuf[FFT_LENGTH];	//FFT输出数组
+	uint16_t fft_int[FFT_LENGTH];		//将输出变成整数
+	for (int i = 0; i < FFT_LENGTH; i++)	//生成信号序列
+			{
+		fft_inputbuf[2 * i] = adc_buffer[i];
+		//信号实部，直流分量100,1HZ信号幅值为10，50HZ信号幅值为20，300HZ信号幅值为30。
+		fft_inputbuf[2 * i + 1] = 0;	//信号虚部，全部为0
+	}
+	arm_cfft_f32(&arm_cfft_sR_f32_len1024, fft_inputbuf, 0, 1);
+	arm_cmplx_mag_f32(fft_inputbuf, fft_outputbuf, FFT_LENGTH);
+	for (int i = 0; i < FFT_LENGTH; i++)	//生成信号序列
+			{
+		fft_int[i]=(uint16_t) fft_outputbuf[i];
+	}
+```
+
+
 #### ENV
+
+直接 import 即可.
 
 #### Change to Fixed-Point Number
 
-
+后续优化方案
