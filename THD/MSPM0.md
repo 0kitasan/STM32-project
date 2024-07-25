@@ -17,7 +17,7 @@ uint8_t adc_buffer1[2 * samples];
 uint16_t dac_buffer[100];
 float32_t FFT_Input_Q15_f[50];
 float32_t aFFT_Input_Q15[50];
-volatile int adc_ongoing = 0; 
+volatile int adc_ongoing = 0;
 
 void floatToString(float num, char *str, int precision);
 
@@ -84,9 +84,9 @@ float calculateTHD(float fft_outputbuf[]) {
 /* USER CODE END 0 */
 ```
 
-### main函数逻辑
+### main 函数逻辑
 
-v2版本只是调试程序，DAC 尚未配置
+v2 版本只是调试程序，DAC 尚未配置
 
 ```cpp
 int main(void) {
@@ -145,7 +145,6 @@ int main(void) {
 }
 ```
 
-
 ## 迁移工作
 
 需要回去查看 CubeMX ,此外,可以测试一下 TIM1638 的底层驱动移植.
@@ -171,12 +170,9 @@ ADC 测量部分
 
 #### TIM
 
-
 #### UART，可以不用，但方便调试
 
 #### DAC(v2 暂时不用)
-
-
 
 ### CMSIS-DSP:FFT
 
@@ -199,7 +195,6 @@ ADC 测量部分
 		fft_int[i]=(uint16_t) fft_outputbuf[i];
 	}
 ```
-
 
 #### ENV
 
