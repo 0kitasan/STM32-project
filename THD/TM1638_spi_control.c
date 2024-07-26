@@ -3,16 +3,29 @@
 #include <string.h>
 
 // 引脚定义
-// 可以尝试用GPIO控制CS
 // #define GPIO_SPI_0_CS0_PORT GPIOB #define GPIO_SPI_0_CS0_PIN DL_GPIO_PIN_6
 // PB9 SCLK
 // PB8 MOSI
 // PB7 MISO
 // PB6 CS0
-
+// 单独使用1个GPIO控制CS
 // PB13 GPIO_CS
 
 uint8_t DIGITS[] = {0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x07, 0x7f, 0x6f};
+
+/*
+ -- A --
+|       |
+F       B
+|       |
+ -- G --
+|       |
+E       C
+|       |
+ -- D --  DP
+
+0b-PGFEDCBA
+*/
 
 #define CHAR_TABLE_SIZE 128
 const uint8_t charTable[CHAR_TABLE_SIZE] = {
@@ -41,7 +54,10 @@ const uint8_t charTable[CHAR_TABLE_SIZE] = {
     ['r'] = 0x50, // 0b01010000
     ['U'] = 0x3E, // 0b00111110
     [' '] = 0x00, // 0b00000000
-    ['.'] = 0x80  // 0b10000000
+    ['.'] = 0x80, // 0b10000000
+    ['='] = 0x48, // 0b01001000
+    ['t'] = 0x78, // 0b01111000
+    ['h'] = 0x74  // 0b01110100
 };
 
 // 将单个字符转换为七段显示器编码
@@ -91,13 +107,13 @@ void TM1638_reset(void) {
   spi_send_cmd(0x8F);
 }
 
-void TM1638_disp_num(uint32_t dis_num) {
+void TM1638_disp_int(uint32_t num2disp) {
   uint8_t digits[8] = {0};           // TM1638 支持最多 8 位数字显示
   static uint8_t data_set[16] = {0}; // 16 个显示寄存器
   // 提取每一位数字，从高位到低位存储
   for (int i = 0; i < 8; ++i) {
-    digits[7 - i] = dis_num % 10;
-    dis_num /= 10;
+    digits[7 - i] = num2disp % 10;
+    num2disp /= 10;
   }
   // 将数字转换为 TM1638 的显示数据格式
   for (int i = 0; i < 8; ++i) {
@@ -110,17 +126,24 @@ void TM1638_disp_num(uint32_t dis_num) {
   spi_send_cmd(0x8F); // 打开显示并设置亮度
 }
 
-void TM1638_disp_str(const char *disp_str) {
-  uint8_t length = strlen(disp_str);
+void TM1638_disp_str(const char *str2disp) {
+  uint8_t length = strlen(str2disp);
   uint8_t text_on_segments[length];
   uint8_t segments[16] = {0}; // 初始化为0
 
   // 将字符串转换为七段显示器编码
-  stringToSegments(disp_str, text_on_segments, length);
+  stringToSegments(str2disp, text_on_segments, length);
   // 填充 segments 数组
-  for (int i = 0; i < length && i < 8; i++) {
-    // 最多填充8个字符
-    segments[i * 2] = text_on_segments[i];
+  int seg_idx = 0;
+  for (int txt_idx = 0; txt_idx < length && seg_idx < 8; txt_idx++) {
+    if (str2disp[txt_idx] == '.') {
+      if (seg_idx > 0) {
+        segments[(seg_idx - 1) * 2] |= 0x80; // 将前一个字符段码与小数点组合
+      }
+    } else {
+      segments[seg_idx * 2] = text_on_segments[txt_idx];
+      seg_idx++;
+    }
   }
   spi_send_cmd(0x44);
   for (int i = 0; i < 16; i++) {
@@ -128,7 +151,6 @@ void TM1638_disp_str(const char *disp_str) {
   }
   spi_send_cmd(0x8F);
 }
-
 
 int main(void) {
   SYSCFG_DL_init();
@@ -139,7 +161,7 @@ int main(void) {
   DL_GPIO_setPins(GPIO_CS_PORT, GPIO_CS_PIN_PIN);
   TM1638_reset();
   delay_cycles(16000000);
-  TM1638_disp_str("TESTHELLo");
+  TM1638_disp_str("thd=11.45");
 
   __BKPT();
   /* After all data is transmitted, toggle LED */
