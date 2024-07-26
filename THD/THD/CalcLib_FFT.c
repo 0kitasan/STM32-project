@@ -1,53 +1,98 @@
 // CalcLib_FFT.c
 #include "CalcLib_FFT.h"
-#include <math.h> // 包含数学函数库
+#include <math.h>
 #include <stdbool.h>
 
-int findMaxIndexInRange(uint16_t arr[], int start, int end) {
-	int maxIndex = start;
-	for (int i = start + 1; i <= end; i++) {
-		if (arr[i] > arr[maxIndex]) {
-			maxIndex = i;
-		}
-	}
-	return maxIndex;
+int findMaxIndexInRange(uint32_t *arr_input, int start, int end) {
+  int maxIndex = start;
+  for (int i = start + 1; i <= end; i++) {
+    if (arr_input[i] > arr_input[maxIndex]) {
+      maxIndex = i;
+    }
+  }
+  return maxIndex;
 }
 
-float calculateTHD (uint16_t fft_int[])
-{
-  int max = findMaxIndexInRange (fft_int, 0, 511);
+float calculateTHD(uint32_t fft_int[]) {
+  int max = findMaxIndexInRange(fft_int, 0, 511);
   float fundamental_amplitude = fft_int[max];
+  // float harmonics_amplitude_sum_squared = 0.0f;
+  float harmonics_amplitude_sum_squared;
+  int second = findMaxIndexInRange(fft_int, 150, 250);
+  int third = findMaxIndexInRange(fft_int, 250, 350);
+  int fourth = findMaxIndexInRange(fft_int, 350, 450);
+  int fifth = findMaxIndexInRange(fft_int, 450, 511);
+  harmonics_amplitude_sum_squared =
+      fft_int[second] * fft_int[second] + fft_int[third] * fft_int[third] +
+      fft_int[fourth] * fft_int[fourth] + fft_int[fifth] * fft_int[fifth];
+  harmonics_amplitude_sum_squared = sqrtf(harmonics_amplitude_sum_squared);
+  float thd_res = harmonics_amplitude_sum_squared / fundamental_amplitude;
+  float thd_percent = 100 * thd_res;
+  return thd_percent;
+}
+
+float calculateTHD_v4(uint32_t fft_int[]) {
+  // 找到基频
+  int max = findMaxIndexInRange(fft_int, 0, 511);
+  int fft_maxf_Am_resize;
+  int fft_maxf_left_Am_resize;
+  int fft_maxf_right_Am_resize;
+  float fundamental_amplitude;
+  // 计算基频的幅度
+  if (fft_maxf_Am_resize > 10000 || fft_maxf_left_Am_resize > 10000 ||
+      fft_maxf_right_Am_resize > 10000) {
+    fft_maxf_Am_resize = fft_int[max] / 10000;
+    fft_maxf_left_Am_resize = fft_int[max - 1] / 10000;
+    fft_maxf_right_Am_resize = fft_int[max + 1] / 10000;
+    fundamental_amplitude =
+        10000 * sqrtf(fft_maxf_Am_resize * fft_maxf_Am_resize +
+                      fft_maxf_left_Am_resize * fft_maxf_left_Am_resize +
+                      fft_maxf_right_Am_resize * fft_maxf_right_Am_resize);
+  } else {
+    fft_maxf_Am_resize = fft_int[max];
+    fft_maxf_left_Am_resize = fft_int[max - 1];
+    fft_maxf_right_Am_resize = fft_int[max + 1];
+    fundamental_amplitude =
+        sqrtf(fft_maxf_Am_resize * fft_maxf_Am_resize +
+              fft_maxf_left_Am_resize * fft_maxf_left_Am_resize +
+              fft_maxf_right_Am_resize * fft_maxf_right_Am_resize);
+  }
   float harmonics_amplitude_sum_squared = 0.0f;
-  int second = findMaxIndexInRange (fft_int, 150, 250);
-  int third = findMaxIndexInRange (fft_int, 250, 350);
-  int fourth = findMaxIndexInRange (fft_int, 350, 450);
-  int fifth = findMaxIndexInRange (fft_int, 450, 511);
-  harmonics_amplitude_sum_squared = fft_int[second] * fft_int[second]
-      + fft_int[third] * fft_int[third] + fft_int[fourth] * fft_int[fourth]
-      + fft_int[fifth] * fft_int[fifth];
-  harmonics_amplitude_sum_squared = sqrtf (harmonics_amplitude_sum_squared);
-  float thd = 100 * (harmonics_amplitude_sum_squared) / (fundamental_amplitude);
-  return thd;
+  // 定义谐波的范围
+  int harmonic_ranges[4][2] = {{150, 250}, {250, 350}, {350, 450}, {450, 511}};
+  // 计算各次谐波的幅度
+  for (int i = 0; i < 4; ++i) {
+    int harmonic = findMaxIndexInRange(fft_int, harmonic_ranges[i][0],
+                                       harmonic_ranges[i][1]);
+    harmonics_amplitude_sum_squared +=
+        fft_int[harmonic - 1] * fft_int[harmonic - 1] +
+        fft_int[harmonic] * fft_int[harmonic] +
+        fft_int[harmonic + 1] * fft_int[harmonic + 1];
+  }
+  harmonics_amplitude_sum_squared = sqrtf(harmonics_amplitude_sum_squared);
+  float thd_res = harmonics_amplitude_sum_squared / fundamental_amplitude;
+  float thd_percent = 100 * thd_res;
+  return thd_percent;
 }
 
 uint16_t findMax(uint16_t arr[], int size) {
-	uint16_t max = 0;
-	for (int i = 0; i < size; i++) {
-		if (arr[i] > max) {
-			max = arr[i];
-		}
-	}
-	return max;
+  uint16_t max = 0;
+  for (int i = 0; i < size; i++) {
+    if (arr[i] > max) {
+      max = arr[i];
+    }
+  }
+  return max;
 }
 
 uint16_t findMin(uint16_t arr[], int size) {
-	uint16_t min = UINT16_MAX;
-	for (int i = 0; i < size; i++) {
-		if (arr[i] < min) {
-			min = arr[i];
-		}
-	}
-	return min;
+  uint16_t min = UINT16_MAX;
+  for (int i = 0; i < size; i++) {
+    if (arr[i] < min) {
+      min = arr[i];
+    }
+  }
+  return min;
 }
 
 uint32_t cal_ADC_SampleRate(uint16_t square_freq, uint16_t *adc_sample_res,
