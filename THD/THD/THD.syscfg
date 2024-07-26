@@ -11,14 +11,18 @@
 const ADC12         = scripting.addModule("/ti/driverlib/ADC12", {}, false);
 const ADC121        = ADC12.addInstance();
 const Board         = scripting.addModule("/ti/driverlib/Board");
+const COMP          = scripting.addModule("/ti/driverlib/COMP", {}, false);
+const COMP1         = COMP.addInstance();
 const DAC12         = scripting.addModule("/ti/driverlib/DAC12");
 const GPIO          = scripting.addModule("/ti/driverlib/GPIO", {}, false);
 const GPIO1         = GPIO.addInstance();
+const GPIO2         = GPIO.addInstance();
 const OPA           = scripting.addModule("/ti/driverlib/OPA", {}, false);
 const OPA1          = OPA.addInstance();
 const SYSCTL        = scripting.addModule("/ti/driverlib/SYSCTL");
 const TIMER         = scripting.addModule("/ti/driverlib/TIMER", {}, false);
 const TIMER1        = TIMER.addInstance();
+const VREF          = scripting.addModule("/ti/driverlib/VREF");
 const ProjectConfig = scripting.addModule("/ti/project_config/ProjectConfig");
 
 /**
@@ -52,8 +56,16 @@ ADC121.DMA_CHANNEL.configureTransferSize = true;
 ADC121.DMA_CHANNEL.transferSize          = 1024;
 
 
+COMP1.$name         = "COMP_0";
+COMP1.hysteresis    = "DL_COMP_HYSTERESIS_20";
+COMP1.vSource       = "DL_COMP_REF_SOURCE_VDDA_DAC";
+COMP1.controlSelect = "DL_COMP_DAC_CONTROL_SW";
+COMP1.setDACCode0   = 0x4D;
+
 DAC12.dacOutputPinEn     = true;
 DAC12.dacAmplifier       = "ON";
+DAC12.dacPosVREF         = "VEREFP";
+DAC12.dacNegVREF         = "VEREFN";
 DAC12.OutPinConfig.$name = "ti_driverlib_gpio_GPIOPinGeneric1";
 
 GPIO1.$name                          = "GPIO_LEDS";
@@ -64,9 +76,16 @@ GPIO1.associatedPins[0].assignedPin  = "0";
 GPIO1.associatedPins[0].initialValue = "SET";
 GPIO1.associatedPins[0].pin.$assign  = "PA0";
 
+GPIO2.port                    = "PORTA";
+GPIO2.$name                   = "GPIO_OUTPUT";
+GPIO2.associatedPins[0].$name = "DIODE";
+
 OPA1.$name              = "OPA_0";
-OPA1.cfg0MSELChannel    = "DAC_OUT";
 OPA1.cfg0OutputPin      = "ENABLED";
+OPA1.cfg0PSELChannel    = "DAC8_OUT";
+OPA1.cfg0NSELChannel    = "RTOP";
+OPA1.advBW              = "HIGH";
+OPA1.peripheral.$assign = "OPA0";
 OPA1.OutPinConfig.$name = "ti_driverlib_gpio_GPIOPinGeneric2";
 
 SYSCTL.forceDefaultClkConfig = true;
@@ -80,6 +99,17 @@ TIMER1.counterZero                 = true;
 TIMER1.timerStartTimer             = true;
 TIMER1.timerPeriod                 = "1us";
 
+VREF.basicIntVolt                  = "DL_VREF_BUFCONFIG_OUTPUT_2_5V";
+VREF.checkVREFReady                = true;
+VREF.advClockConfigEnable          = true;
+VREF.advClkSrc                     = "DL_VREF_CLOCK_BUSCLK";
+VREF.basicVrefPins                 = "VREF+-";
+VREF.peripheral.$assign            = "VREF";
+VREF.peripheral.vrefPosPin.$assign = "PA23";
+VREF.peripheral.vrefNegPin.$assign = "PA21";
+VREF.vrefPosPinConfig.$name        = "ti_driverlib_gpio_GPIOPinGeneric3";
+VREF.vrefNegPinConfig.$name        = "ti_driverlib_gpio_GPIOPinGeneric4";
+
 ProjectConfig.genLibCMSIS = true;
 
 /**
@@ -92,8 +122,9 @@ ADC121.DMA_CHANNEL.peripheral.$suggestSolution = "DMA_CH0";
 Board.peripheral.$suggestSolution              = "DEBUGSS";
 Board.peripheral.swclkPin.$suggestSolution     = "PA20";
 Board.peripheral.swdioPin.$suggestSolution     = "PA19";
+COMP1.peripheral.$suggestSolution              = "COMP0";
 DAC12.peripheral.$suggestSolution              = "DAC0";
 DAC12.peripheral.OutPin.$suggestSolution       = "PA15";
-OPA1.peripheral.$suggestSolution               = "OPA0";
+GPIO2.associatedPins[0].pin.$suggestSolution   = "PA12";
 OPA1.peripheral.OutPin.$suggestSolution        = "PA22";
 TIMER1.peripheral.$suggestSolution             = "TIMA0";
