@@ -124,3 +124,79 @@ uint32_t cal_ADC_SampleRate(uint16_t square_freq, uint16_t *adc_sample_res,
 
   return sample_rate;
 }
+
+void floatToString(float num, char *str, int precision) {
+  // 确定符号
+  int isNegative = 0;
+  if (num < 0) {
+    isNegative = 1;
+    num = -num;
+  }
+
+  // 提取整数部分
+  int integerPart = (int)num;
+  num -= integerPart;
+
+  // 提取小数部分
+  int factor = 1;
+  for (int i = 0; i < precision; ++i) {
+    num *= 10;
+    factor *= 10;
+  }
+  int decimalPart = (int)(num + 0.5); // 四舍五入
+
+  // 将整数部分转换为字符串
+  char buffer[20];
+  int index = 0;
+  do {
+    buffer[index++] = (integerPart % 10) + '0';
+    integerPart /= 10;
+  } while (integerPart > 0);
+
+  if (isNegative) {
+    buffer[index++] = '-';
+  }
+  buffer[index] = '\0';
+
+  // 反转整数部分字符串
+  for (int i = 0; i < index / 2; ++i) {
+    char temp = buffer[i];
+    buffer[i] = buffer[index - i - 1];
+    buffer[index - i - 1] = temp;
+  }
+
+  // 将整数部分复制到结果字符串
+  int strIndex = 0;
+  for (int i = 0; buffer[i] != '\0'; ++i) {
+    str[strIndex++] = buffer[i];
+  }
+
+  // 添加小数点
+  str[strIndex++] = '.';
+
+  // 将小数部分转换为字符串
+  index = 0;
+  do {
+    buffer[index++] = (decimalPart % 10) + '0';
+    decimalPart /= 10;
+  } while (decimalPart > 0);
+
+  // 补齐小数部分不足的位数
+  while (index < precision) {
+    buffer[index++] = '0';
+  }
+  buffer[index] = '\0';
+
+  // 反转小数部分字符串
+  for (int i = 0; i < index / 2; ++i) {
+    char temp = buffer[i];
+    buffer[i] = buffer[index - i - 1];
+    buffer[index - i - 1] = temp;
+  }
+
+  // 将小数部分复制到结果字符串
+  for (int i = 0; buffer[i] != '\0'; ++i) {
+    str[strIndex++] = buffer[i];
+  }
+  str[strIndex] = '\0';
+}

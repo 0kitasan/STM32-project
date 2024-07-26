@@ -11,5 +11,5 @@ float calculateTHD(uint32_t fft_int[]);
 float calculateTHD_v4(uint32_t fft_int[]);
 uint32_t cal_ADC_SampleRate(uint16_t square_freq, uint16_t *adc_sample_res,
                             uint16_t adc_sample_size);
-
+void floatToString(float num, char *str, int precision);
 #endif // CALCLIB_FFT_H

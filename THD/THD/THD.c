@@ -7,16 +7,18 @@
 #include <stdio.h>
 
 /*
-PA15 DAC12---ref=2.5V
-PA22 DAC8(OPA)--ref=3.3V
-PA25 ADC---ref=3.3V
-PA13 GPIO_DIODE(temp)
-*/
+ * Pin Assignments:
+ *
+ * PA15 - DAC12:    12-bit Digital-to-Analog Converter, ref=2.5V.
+ * PA22 - DAC8:     8-bit DAC with OPA, ref=3.3V.
+ * PA25 - ADC:      Analog-to-Digital Converter, ref=3.3V.
+ * PA13 - GPIO:     TempPin: General-Purpose I/O for diode.
+ */
 
 #define FFT_LENGTH 1024
 #define ADC_SAMPLE_SIZE 1024
 #define samples 1024
-uint16_t adc_result[ADC_SAMPLE_SIZE]; // 定义ADC接收缓冲区
+uint16_t adc_result[ADC_SAMPLE_SIZE];
 volatile bool adc_flag = false;
 uint32_t adc_sample_rate = 0;
 
@@ -60,17 +62,65 @@ void DAC12_output(DAC12_Regs *dac12, uint32_t value) {
   DL_DAC12_enable(dac12);
 }
 
-float calculateTHD_v2(float fft_outputbuf[]) {
-  float fundamental_amplitude = fft_outputbuf[1];
-  float harmonics_amplitude_sum_squared = 0.0f;
-
-  for (int i = 2; i < 6; i++) {
-    harmonics_amplitude_sum_squared += fft_outputbuf[i] * fft_outputbuf[i];
+void wave_control(int mode, int pos) {
+  // Cro,top,bot,nor
+  int times2delay = 3200000;
+  // control offset
+  DAC8_byOPA_output(COMP_0_INST, OPA_0_INST, 1650);
+  delay_cycles(times2delay);
+  int offset;
+  if (mode == 0) {
+    DL_GPIO_clearPins(GPIO_OUTPUT_PORT, GPIO_OUTPUT_DIODE_PIN);
+    switch (pos) {
+    case 0:
+      offset = 1650;
+      TM1638_disp_str("nor.");
+      break;
+    case -1:
+      offset = 1100;
+      TM1638_disp_str("nor.bot");
+      break;
+    case 1:
+      offset = 2200;
+      TM1638_disp_str("nor.top");
+      break;
+    }
+  } else {
+    TM1638_disp_str("Cro.");
+    offset = 1650;
+    DL_GPIO_setPins(GPIO_OUTPUT_PORT, GPIO_OUTPUT_DIODE_PIN);
   }
 
-  float thd =
-      sqrtf(harmonics_amplitude_sum_squared) / fundamental_amplitude * 100.0f;
-  return thd;
+  /*set vpp to proper value*/
+  int v = 1100;
+  int vl = 200;
+  int vr = 2000;
+  uint16_t vpp = 0;
+  // control gain
+  DAC12_output(DAC0, v);
+  delay_cycles(times2delay);
+  for (int i = 0; i < 2; i++) {
+    ADC_get_sample();
+  }
+  vpp = findMax(adc_result, samples) - findMin(adc_result, samples);
+  for (int i = 0; i < 10; i++) {
+    if (vpp > 3000 * 4096 / 3300) {
+      vl = v;
+      v = (v + vr) / 2;
+    } else {
+      vr = v;
+      v = (v + vl) / 2;
+    }
+    DAC12_output(DAC0, v);
+    delay_cycles(times2delay);
+    for (int i = 0; i < 2; i++) {
+      ADC_get_sample();
+    }
+    vpp = findMax(adc_result, samples) - findMin(adc_result, samples);
+  }
+  // set offset to proper value
+  DAC8_byOPA_output(COMP_0_INST, OPA_0_INST, offset);
+  delay_cycles(times2delay);
 }
 
 float thd;
@@ -83,19 +133,16 @@ uint32_t timer_div_reg;
 int tim_max;
 
 int main(void) {
-  /*
-  ---------Initialization---------*/
+  /*---------Initialization---------*/
   SYSCFG_DL_init();
   NVIC_EnableIRQ(ADC12_0_INST_INT_IRQN);
   TM1638_init(SPI_0_INST, GPIO_OUTPUT_PORT, GPIO_OUTPUT_CS_PIN);
   TM1638_disp_str("InIt.");
-  DAC12_output(DAC0, 1000);
-  DAC8_byOPA_output(COMP_0_INST, OPA_0_INST, 650);
   __BKPT(0);
 
   /*---------first FFT to change sample rate---------*/
+  TIMA0->COUNTERREGS.LOAD = 63; // 0.5MHz
   ADC_get_sample();
-
   float fft_inputbuf[FFT_LENGTH * 2]; // FFT输入数组
   float fft_outputbuf[FFT_LENGTH];    // FFT输出数组
   uint32_t fft_int[FFT_LENGTH / 2];
@@ -112,56 +159,40 @@ int main(void) {
     fft_int[i] = (uint32_t)fft_outputbuf[i] / 16;
   }
   fft_int[0] = 0;
-  timer_cnt_reg = TIMA0->COUNTERREGS.LOAD;
-  tim_max = (TIMA0->COUNTERREGS.LOAD + 1) * 100 /
-            findMaxIndexInRange(fft_int, 0, 511);
-  thd = calculateTHD_v2(fft_outputbuf);
-  TIMA0->COUNTERREGS.LOAD = tim_max - 1;
-  timer_div_reg = TIMA0->CLKDIV;
-  __BKPT(0);
-
-  /*----------set proper gain and offset----------*/
-  // control mode
-  // Cro,top,bot,nor
-  TM1638_disp_str("nor.");
-  DL_GPIO_clearPins(GPIO_OUTPUT_PORT, GPIO_OUTPUT_DIODE_PIN);
-  // TM1638_disp_str("Cro.");
-  // DL_GPIO_setPins(GPIO_OUTPUT_PORT, GPIO_OUTPUT_DIODE_PIN);
-  // control offset
-  DAC8_byOPA_output(COMP_0_INST, OPA_0_INST, 1650);
-  __BKPT(0);
-  /*set vpp to proper value*/
-  int v = 1100;
-  int vl = 200;
-  int vr = 2000;
-  uint16_t vpp = 0;
-  // control gain
-  DAC12_output(DAC0, v);
-  delay_cycles(1600000);
-  // TM1638_disp_str("thd=11.45");
-  for (int i = 0; i < 2; i++) {
-    ADC_get_sample();
-  }
-  vpp = findMax(adc_result, samples) - findMin(adc_result, samples);
-  for (int i = 0; i < 10; i++) {
-    if (vpp > 3000 * 4096 / 3300) {
-      vl = v;
-      v = (v + vr) / 2;
-    } else {
-      vr = v;
-      v = (v + vl) / 2;
-    }
-    DAC12_output(DAC0, v);
-    delay_cycles(1600000);
-    for (int i = 0; i < 2; i++) {
+  //   timer_cnt_reg = TIMA0->COUNTERREGS.LOAD;
+  //   tim_max = (TIMA0->COUNTERREGS.LOAD + 1) * 100 /
+  //             findMaxIndexInRange(fft_int, 0, 511);
+  //   TIMA0->COUNTERREGS.LOAD = tim_max - 1;
+  //   timer_div_reg = TIMA0->CLKDIV;
+  //   __BKPT(0);
+  max_index = findMaxIndexInRange(fft_int, 0, 511);
+  if (findMaxIndexInRange(fft_int, 0, 511) < 3) {
+    TIMA0->CLKDIV = 7;
+    TIMA0->COUNTERREGS.LOAD = 199;
+    timer_div_reg = TIMA0->CLKDIV;
+    timer_cnt_reg = TIMA0->COUNTERREGS.LOAD;
+    for (int i = 0; i < 3; i++) {
       ADC_get_sample();
     }
-    vpp = findMax(adc_result, samples) - findMin(adc_result, samples);
-    //__BKPT(0);
+    for (int i = 0; i < FFT_LENGTH; i++) // 生成信号序列
+    {
+      fft_inputbuf[2 * i] = adc_result[i];
+      fft_inputbuf[2 * i + 1] = 0; // 信号虚部，全部为0
+    }
+    arm_cfft_f32(&arm_cfft_sR_f32_len1024, fft_inputbuf, 0, 1);
+    arm_cmplx_mag_f32(fft_inputbuf, fft_outputbuf, FFT_LENGTH);
+    for (int i = 0; i < FFT_LENGTH / 2; i++) // 生成信号序列
+    {
+      fft_int[i] = (uint32_t)fft_outputbuf[i] / 16;
+    }
+    fft_int[0] = 0;
   }
-  // set offset to proper value
-  DAC8_byOPA_output(COMP_0_INST, OPA_0_INST, 2500);
-
+  tim_max =
+      (TIMA0->COUNTERREGS.LOAD + 1) * 93 / findMaxIndexInRange(fft_int, 0, 511);
+  TIMA0->COUNTERREGS.LOAD = tim_max - 1;
+  /*----------set proper gain and offset----------*/
+  ADC_get_sample();
+  wave_control(0, -1);
   __BKPT(0);
 
   /*----------measure THD by FFT----------*/
@@ -187,10 +218,9 @@ int main(void) {
 
   /*----------LOW FREQ:measure THD by FFT----------*/
   max_index = findMaxIndexInRange(fft_int, 0, 511);
-  __BKPT(0);
   if (findMaxIndexInRange(fft_int, 0, 511) < 3) {
     TIMA0->CLKDIV = 7;
-    TIMA0->COUNTERREGS.LOAD = 6300;
+    TIMA0->COUNTERREGS.LOAD = 199;
     timer_div_reg = TIMA0->CLKDIV;
     timer_cnt_reg = TIMA0->COUNTERREGS.LOAD;
     for (int i = 0; i < 3; i++) {
@@ -201,7 +231,6 @@ int main(void) {
       fft_inputbuf[2 * i] = adc_result[i];
       fft_inputbuf[2 * i + 1] = 0; // 信号虚部，全部为0
     }
-    __BKPT(0);
     arm_cfft_f32(&arm_cfft_sR_f32_len1024, fft_inputbuf, 0, 1);
     arm_cmplx_mag_f32(fft_inputbuf, fft_outputbuf, FFT_LENGTH);
     for (int i = 0; i < FFT_LENGTH / 2; i++) // 生成信号序列
@@ -232,6 +261,12 @@ int main(void) {
   fft_int[0] = 0;
   thd = calculateTHD(fft_int);
   thd_v4 = calculateTHD_v4(fft_int);
+
+  char str1[10] = "thd=";
+  char str2[5];
+  floatToString(thd_v4, str2, 3);
+  strcat(str1, str2);
+  TM1638_disp_str(str1);
   __BKPT(0);
   while (1) {
   }
