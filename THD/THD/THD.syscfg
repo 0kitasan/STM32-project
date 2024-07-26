@@ -11,8 +11,11 @@
 const ADC12         = scripting.addModule("/ti/driverlib/ADC12", {}, false);
 const ADC121        = ADC12.addInstance();
 const Board         = scripting.addModule("/ti/driverlib/Board");
+const DAC12         = scripting.addModule("/ti/driverlib/DAC12");
 const GPIO          = scripting.addModule("/ti/driverlib/GPIO", {}, false);
 const GPIO1         = GPIO.addInstance();
+const OPA           = scripting.addModule("/ti/driverlib/OPA", {}, false);
+const OPA1          = OPA.addInstance();
 const SYSCTL        = scripting.addModule("/ti/driverlib/SYSCTL");
 const TIMER         = scripting.addModule("/ti/driverlib/TIMER", {}, false);
 const TIMER1        = TIMER.addInstance();
@@ -21,6 +24,9 @@ const ProjectConfig = scripting.addModule("/ti/project_config/ProjectConfig");
 /**
  * Write custom configuration values to the imported modules.
  */
+const gate8  = system.clockTree["MFPCLKGATE"];
+gate8.enable = true;
+
 ADC121.$name                             = "ADC12_0";
 ADC121.sampClkDiv                        = "DL_ADC12_CLOCK_DIVIDE_8";
 ADC121.powerDownMode                     = "DL_ADC12_POWER_DOWN_MODE_MANUAL";
@@ -46,6 +52,10 @@ ADC121.DMA_CHANNEL.configureTransferSize = true;
 ADC121.DMA_CHANNEL.transferSize          = 1024;
 
 
+DAC12.dacOutputPinEn     = true;
+DAC12.dacAmplifier       = "ON";
+DAC12.OutPinConfig.$name = "ti_driverlib_gpio_GPIOPinGeneric1";
+
 GPIO1.$name                          = "GPIO_LEDS";
 GPIO1.port                           = "PORTA";
 GPIO1.portSegment                    = "Lower";
@@ -53,6 +63,11 @@ GPIO1.associatedPins[0].$name        = "USER_LED_1";
 GPIO1.associatedPins[0].assignedPin  = "0";
 GPIO1.associatedPins[0].initialValue = "SET";
 GPIO1.associatedPins[0].pin.$assign  = "PA0";
+
+OPA1.$name              = "OPA_0";
+OPA1.cfg0MSELChannel    = "DAC_OUT";
+OPA1.cfg0OutputPin      = "ENABLED";
+OPA1.OutPinConfig.$name = "ti_driverlib_gpio_GPIOPinGeneric2";
 
 SYSCTL.forceDefaultClkConfig = true;
 SYSCTL.clockTreeEn           = true;
@@ -77,4 +92,8 @@ ADC121.DMA_CHANNEL.peripheral.$suggestSolution = "DMA_CH0";
 Board.peripheral.$suggestSolution              = "DEBUGSS";
 Board.peripheral.swclkPin.$suggestSolution     = "PA20";
 Board.peripheral.swdioPin.$suggestSolution     = "PA19";
+DAC12.peripheral.$suggestSolution              = "DAC0";
+DAC12.peripheral.OutPin.$suggestSolution       = "PA15";
+OPA1.peripheral.$suggestSolution               = "OPA0";
+OPA1.peripheral.OutPin.$suggestSolution        = "PA22";
 TIMER1.peripheral.$suggestSolution             = "TIMA0";
